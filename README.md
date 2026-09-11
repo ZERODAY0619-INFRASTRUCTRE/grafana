@@ -26,9 +26,7 @@ authentik에서 OAuth2/OpenID Provider와 Application을 만들고 Strict Redire
 cp .env.example .env
 chmod 600 .env
 ${EDITOR:-vi} .env
-python3 scripts/generate-targets.py
-docker compose config --quiet
-docker compose up -d --wait
+python3 scripts/start-telemetry.py
 ```
 
 두 대상은 같은 종류의 메트릭이므로 Prometheus의 공통
@@ -99,8 +97,10 @@ PC 스크립트는 `tailscale status --json`에 나타나는 기기의 Tailscale
 python3 scripts/start-telemetry.py
 ```
 
-이 명령은 서버의 Tailscale IP를 자동으로 구해 Compose 두 파일을 함께
-적용합니다. 수집 게이트웨이는 **해당 Tailscale IP의 14318 포트에만** 바인딩합니다.
+이 명령은 서버의 Tailscale IP를 자동으로 구해 `compose.yml`을 적용합니다.
+`compose.yml`은 `include`로 `compose.telemetry.yml`을 자동으로 불러옵니다
+(Docker Compose 2.20.0 이상 필요).
+수집 게이트웨이는 **해당 Tailscale IP의 14318 포트에만** 바인딩합니다.
 HTTP는 Tailscale 암호화 터널 안에서 전달됩니다. Tailscale grants/ACL에서
 허용된 개인 PC가 서버의 `tcp:14318`에 접근할 수 있어야 합니다. 이 포트에는
 별도 앱 인증이 없으므로 수집 권한은 Tailscale 정책으로 제한합니다.
@@ -109,7 +109,9 @@ Loki·Tempo·Collector의 조회/관리 포트는 호스트에 게시하지 않�
 설정 검증만 하려면 `python3 scripts/start-telemetry.py --check`를 사용합니다.
 서버 재부팅 후에는 Docker의 restart 정책이 적용됩니다. Tailscale IP가
 변경되거나 구성을 업데이트하면 서버 스크립트를 다시 실행하세요.
-일반 `docker compose up`만 실행하면 추가 수집 구성은 적용되지 않습니다.
+직접 실행하려면 `.env`에 서버의 `OTEL_TAILSCALE_IP`를 설정한 뒤
+`python3 scripts/generate-targets.py`와 `docker compose up -d`를 실행하세요.
+일반 Compose 명령에도 수집 구성이 자동으로 포함됩니다.
 
 ### 2. 개인 PC에서 실행
 

@@ -1,5 +1,8 @@
 name: grafana
 
+include:
+  - compose.telemetry.yml
+
 x-prometheus-targets:
   icpm: ${ICPM_METRICS_TARGET:?ICPM_METRICS_TARGET must be set}
   pcpm: ${PCPM_METRICS_TARGET:?PCPM_METRICS_TARGET must be set}
@@ -22,7 +25,7 @@ services:
       - --web.enable-lifecycle
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - ./telemetry/targets:/etc/prometheus/targets:ro
       - ./prometheus/cpm-targets:/etc/prometheus/cpm-targets:ro
       - prometheus_data:/prometheus
     tmpfs:
@@ -64,6 +67,9 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./telemetry/datasources.yml:/etc/grafana/provisioning/datasources/telemetry.yml:ro
+      - ./telemetry/dashboards.yml:/etc/grafana/provisioning/dashboards/telemetry.yml:ro
+      - ./telemetry/dashboards:/var/lib/grafana-telemetry-dashboards:ro
     tmpfs:
       - /tmp:size=32m,mode=1777
     healthcheck:

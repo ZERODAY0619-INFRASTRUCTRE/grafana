@@ -1,14 +1,5 @@
 # Start through scripts/start-telemetry.py to resolve the server's Tailscale IP.
 services:
-  prometheus:
-    volumes:
-      - ./telemetry/targets:/etc/prometheus/targets:ro
-  grafana:
-    volumes:
-      - ./telemetry/datasources.yml:/etc/grafana/provisioning/datasources/telemetry.yml:ro
-      - ./telemetry/dashboards.yml:/etc/grafana/provisioning/dashboards/telemetry.yml:ro
-      - ./telemetry/dashboards:/var/lib/grafana-telemetry-dashboards:ro
-
   telemetry-gateway:
     image: nginx:1.28.0-alpine
     restart: unless-stopped

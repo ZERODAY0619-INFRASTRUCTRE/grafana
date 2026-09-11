@@ -19,8 +19,8 @@ def main():
         env = dict(os.environ, OTEL_TAILSCALE_IP=address)
         root = Path(__file__).resolve().parent.parent
         if not args.check:
-            subprocess.run([sys.executable, str(root / "scripts/generate-targets.py")], check=True)
-        command = ["docker", "compose", "-f", "compose.yml", "-f", "compose.telemetry.yml"]
+            subprocess.run([sys.executable, str(root / "scripts/generate-targets.py")], env=env, check=True)
+        command = ["docker", "compose", "-f", "compose.yml"]
         subprocess.run(command + ["config", "--quiet"], cwd=root, env=env, check=True)
         if not args.check:
             subprocess.run(command + ["up", "-d"], cwd=root, env=env, check=True)
