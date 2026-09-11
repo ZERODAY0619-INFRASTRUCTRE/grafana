@@ -1,0 +1,78 @@
+name: grafana
+
+x-prometheus-targets:
+  icpm: ${ICPM_METRICS_TARGET:?ICPM_METRICS_TARGET must be set}
+  pcpm: ${PCPM_METRICS_TARGET:?PCPM_METRICS_TARGET must be set}
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    init: true
+    user: "65534:65534"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/targets:/etc/prometheus/targets:ro
+      - ./prometheus/cpm-targets:/etc/prometheus/cpm-targets:ro
+      - prometheus_data:/prometheus
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+  grafana:
+    image: grafana/grafana:13.2.0
+    restart: unless-stopped
+    init: true
+    user: "472:472"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_PUBLIC_URL:?GRAFANA_PUBLIC_URL must be set}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_SECURITY_COOKIE_SECURE: ${GRAFANA_COOKIE_SECURE:-true}
+      GF_SECURITY_COOKIE_SAMESITE: lax
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: authentik
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: ${GRAFANA_OAUTH_CLIENT_ID:?GRAFANA_OAUTH_CLIENT_ID must be set}
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${GRAFANA_OAUTH_CLIENT_SECRET:?GRAFANA_OAUTH_CLIENT_SECRET must be set}
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid profile email
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: ${GRAFANA_OAUTH_BASE_URL:?GRAFANA_OAUTH_BASE_URL must be set}/application/o/authorize/
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: ${GRAFANA_OAUTH_BASE_URL:?GRAFANA_OAUTH_BASE_URL must be set}/application/o/token/
+      GF_AUTH_GENERIC_OAUTH_API_URL: ${GRAFANA_OAUTH_BASE_URL:?GRAFANA_OAUTH_BASE_URL must be set}/application/o/userinfo/
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_USE_PKCE: "true"
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups[*], 'Grafana Admins') && 'Admin' || contains(groups[*], 'Grafana Editors') && 'Editor' || 'Viewer'"
+      GF_AUTH_OAUTH_AUTO_LOGIN: "true"
+      GF_AUTH_SIGNOUT_REDIRECT_URL: ${GRAFANA_OAUTH_BASE_URL:?GRAFANA_OAUTH_BASE_URL must be set}/application/o/${GRAFANA_OAUTH_APP_SLUG:-grafana}/end-session/
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  grafana_data:
+  prometheus_data:

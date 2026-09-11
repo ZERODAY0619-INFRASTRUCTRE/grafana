@@ -1,0 +1,67 @@
+# Start through scripts/start-telemetry.py to resolve the server's Tailscale IP.
+services:
+  prometheus:
+    volumes:
+      - ./telemetry/targets:/etc/prometheus/targets:ro
+  grafana:
+    volumes:
+      - ./telemetry/datasources.yml:/etc/grafana/provisioning/datasources/telemetry.yml:ro
+      - ./telemetry/dashboards.yml:/etc/grafana/provisioning/dashboards/telemetry.yml:ro
+      - ./telemetry/dashboards:/var/lib/grafana-telemetry-dashboards:ro
+
+  telemetry-gateway:
+    image: nginx:1.28.0-alpine
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    user: "101:101"
+    entrypoint: [nginx, -g, "daemon off;"]
+    ports:
+      - "${OTEL_TAILSCALE_IP:?Use scripts/start-telemetry.py}:14318:8080"
+    volumes:
+      - ./telemetry/nginx.conf:/etc/nginx/nginx.conf:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    depends_on: [otel-collector]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [--config=/etc/otelcol/config.yml]
+    volumes:
+      - ./telemetry/collector.yml:/etc/otelcol/config.yml:ro
+    depends_on: [loki, tempo]
+
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [-config.file=/etc/loki/config.yml]
+    volumes:
+      - ./telemetry/loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [-config.file=/etc/tempo/config.yml]
+    volumes:
+      - ./telemetry/tempo.yml:/etc/tempo/config.yml:ro
+      - tempo_data:/var/tempo
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+volumes:
+  loki_data:
+  tempo_data:

@@ -1,0 +1,11 @@
+apiVersion: 1
+providers:
+  - name: AI Telemetry
+    orgId: 1
+    folder: AI Telemetry
+    type: file
+    disableDeletion: true
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana-telemetry-dashboards

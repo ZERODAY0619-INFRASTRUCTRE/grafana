@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: ai_telemetry
+    honor_labels: true
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/*.json
+  # ICPM and PCPM expose the same application metrics. Keep them in one job so
+  # shared dashboards and alerts can select the exporter once, and use stable
+  # target labels to distinguish the two deployments.
+  - job_name: caddy_proxy_manager
+    metrics_path: /metrics
+    scrape_timeout: 10s
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/cpm-targets/*.json

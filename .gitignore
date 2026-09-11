@@ -1,0 +1,36 @@
+# Local credentials and environment variants
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local backups and logs
+*.backup-*
+*.bak
+*.log
+
+# Locally generated monitoring targets
+prometheus/cpm-targets/*.json
+prometheus/targets/*.json
+
+# Python virtual environments and caches
+.venv/
+.venv-telemetry/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# OS and editor temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

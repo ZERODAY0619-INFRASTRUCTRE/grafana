@@ -1,0 +1,1 @@
+[{"targets":["otel-collector:8889"],"labels":{"service":"ai-telemetry"}}]
